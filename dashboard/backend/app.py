@@ -1,7 +1,11 @@
 from flask import Flask, jsonify
 from flask_cors import CORS
 
-from services.database import initialize_database, get_connection
+from services.database import (
+    initialize_database,
+    get_connection,
+    insert_sample_alert
+)
 
 app = Flask(__name__)
 CORS(app)
@@ -49,11 +53,19 @@ def get_traps():
     return jsonify(traps)
 
 
+# Temporary endpoint to create a test security alert
+@app.route("/api/test-alert", methods=["POST"])
+def create_test_alert():
+    insert_sample_alert()
+
+    return jsonify({
+        "message": "Test alert created successfully"
+    })
+
 
 if __name__ == "__main__":
     print("RansomTrap Dashboard Backend starting...")
     app.run(debug=True, port=5000)
-
 
 
     
