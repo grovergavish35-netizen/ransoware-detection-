@@ -77,25 +77,39 @@ def insert_sample_alert():
 
 
 def insert_trap(path, filename, created_at, status="ACTIVE"):
-    """Insert a trap file record into the database."""
+    """Insert a trap file only if it does not already exist."""
 
     connection = get_connection()
     cursor = connection.cursor()
 
-    cursor.execute("""
-        INSERT INTO traps (
+    # Check whether this trap path already exists
+    cursor.execute(
+        "SELECT id FROM traps WHERE path = ?",
+        (path,)
+    )
+
+    existing_trap = cursor.fetchone()
+
+    if existing_trap is None:
+        cursor.execute("""
+            INSERT INTO traps (
+                path,
+                filename,
+                created_at,
+                status
+            )
+            VALUES (?, ?, ?, ?)
+        """, (
             path,
             filename,
             created_at,
             status
-        )
-        VALUES (?, ?, ?, ?)
-    """, (
-        path,
-        filename,
-        created_at,
-        status
-    ))
+        ))
+
+        print(f"[+] Added new trap: {filename}")
+
+    else:
+        print(f"[=] Trap already exists: {filename}")
 
     connection.commit()
     connection.close()
