@@ -10,16 +10,16 @@ from services.database import (
     insert_sample_alert
 )
 
-# Add project root to Python path
+# Project root path
 BASE_DIR = Path(__file__).resolve().parents[2]
 
 if str(BASE_DIR) not in sys.path:
     sys.path.append(str(BASE_DIR))
 
-# Entropy status file path
+# Entropy status file
 ENTROPY_STATUS_PATH = BASE_DIR / "agent" / "entropy_status.json"
 
-
+# Import monitoring engines
 from agent.process_monitor import (
     get_process_count,
     detect_suspicious_processes
@@ -31,53 +31,78 @@ from agent.entropy_analyzer import analyze_file
 app = Flask(__name__)
 CORS(app)
 
-# Create database tables when backend starts
+# Initialize database
 initialize_database()
 
 
-# Health API
+# ==========================================
+# HEALTH CHECK API
+# ==========================================
+
 @app.route("/api/health", methods=["GET"])
 def health():
     return jsonify({
-        "status": "ok"
+        "status": "ok",
+        "message": "RansomTrap backend is running"
     })
 
 
-# Get security alerts
+# ==========================================
+# SECURITY ALERTS API
+# ==========================================
+
 @app.route("/api/alerts", methods=["GET"])
 def get_alerts():
-    connection = get_connection()
-    cursor = connection.cursor()
+    try:
+        connection = get_connection()
+        cursor = connection.cursor()
 
-    cursor.execute("""
-        SELECT * FROM alerts
-        ORDER BY id DESC
-    """)
+        cursor.execute("""
+            SELECT * FROM alerts
+            ORDER BY id DESC
+        """)
 
-    alerts = [dict(row) for row in cursor.fetchall()]
-    connection.close()
+        alerts = [dict(row) for row in cursor.fetchall()]
+        connection.close()
 
-    return jsonify(alerts)
+        return jsonify(alerts)
+
+    except Exception as error:
+        return jsonify({
+            "error": str(error)
+        }), 500
 
 
-# Get trap files
+# ==========================================
+# TRAP FILES API
+# ==========================================
+
 @app.route("/api/traps", methods=["GET"])
 def get_traps():
-    connection = get_connection()
-    cursor = connection.cursor()
+    try:
+        connection = get_connection()
+        cursor = connection.cursor()
 
-    cursor.execute("""
-        SELECT * FROM traps
-        ORDER BY id DESC
-    """)
+        cursor.execute("""
+            SELECT * FROM traps
+            ORDER BY id DESC
+        """)
 
-    traps = [dict(row) for row in cursor.fetchall()]
-    connection.close()
+        traps = [dict(row) for row in cursor.fetchall()]
+        connection.close()
 
-    return jsonify(traps)
+        return jsonify(traps)
+
+    except Exception as error:
+        return jsonify({
+            "error": str(error)
+        }), 500
 
 
-# Get real running process count
+# ==========================================
+# PROCESS COUNT API
+# ==========================================
+
 @app.route("/api/processes", methods=["GET"])
 def get_processes():
     try:
@@ -96,7 +121,10 @@ def get_processes():
         }), 500
 
 
-# Detect suspicious processes
+# ==========================================
+# SUSPICIOUS PROCESS DETECTION API
+# ==========================================
+
 @app.route("/api/suspicious-processes", methods=["GET"])
 def get_suspicious_processes():
     try:
@@ -115,7 +143,10 @@ def get_suspicious_processes():
         }), 500
 
 
-# Analyze a file manually using entropy engine
+# ==========================================
+# MANUAL ENTROPY ANALYSIS API
+# ==========================================
+
 @app.route("/api/entropy", methods=["POST"])
 def analyze_entropy():
     try:
@@ -138,12 +169,14 @@ def analyze_entropy():
         }), 500
 
 
-# Get latest entropy analysis result
+# ==========================================
+# LATEST ENTROPY STATUS API
+# ==========================================
+
 @app.route("/api/entropy-status", methods=["GET"])
 def get_entropy_status():
     try:
 
-        # No analysis has happened yet
         if not ENTROPY_STATUS_PATH.exists():
             return jsonify({
                 "status": "WAITING",
@@ -152,13 +185,11 @@ def get_entropy_status():
                 "message": "No file analyzed yet"
             })
 
-        # Read latest analysis
         with open(
             ENTROPY_STATUS_PATH,
             "r",
             encoding="utf-8"
         ) as file:
-
             entropy_data = json.load(file)
 
         return jsonify(entropy_data)
@@ -170,7 +201,56 @@ def get_entropy_status():
         }), 500
 
 
-# Temporary endpoint to create test security alert
+# ==========================================
+# NEW: THREAT TIMELINE API
+# ==========================================
+
+@app.route("/api/timeline", methods=["GET"])
+def get_timeline():
+    try:
+        connection = get_connection()
+        cursor = connection.cursor()
+
+        cursor.execute("""
+            SELECT
+                id,
+                timestamp,
+                severity,
+                detector,
+                status,
+                action
+            FROM alerts
+            ORDER BY id DESC
+            LIMIT 10
+        """)
+
+        rows = cursor.fetchall()
+        connection.close()
+
+        timeline = []
+
+        for row in rows:
+            timeline.append({
+                "id": row["id"],
+                "timestamp": row["timestamp"],
+                "severity": row["severity"],
+                "detector": row["detector"],
+                "status": row["status"],
+                "action": row["action"]
+            })
+
+        return jsonify(timeline)
+
+    except Exception as error:
+        return jsonify({
+            "error": str(error)
+        }), 500
+
+
+# ==========================================
+# TEST ALERT API
+# ==========================================
+
 @app.route("/api/test-alert", methods=["POST"])
 def create_test_alert():
     insert_sample_alert()
@@ -180,7 +260,19 @@ def create_test_alert():
     })
 
 
+# ==========================================
+# START SERVER
+# ==========================================
+
 if __name__ == "__main__":
+    print("=" * 50)
     print("RansomTrap Dashboard Backend starting...")
-    print("Entropy Status API: ACTIVE")
-    app.run(debug=True, port=5000)
+    print("Process Monitor API: ACTIVE")
+    print("Entropy Analysis API: ACTIVE")
+    print("Threat Timeline API: ACTIVE")
+    print("=" * 50)
+
+    app.run(
+        debug=True,
+        port=5000
+    )
