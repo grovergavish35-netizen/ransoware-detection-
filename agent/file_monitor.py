@@ -1,19 +1,38 @@
 from pathlib import Path
+import time
 
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
-from trap_manager import get_user_folders, TRAP_FILE_NAMES
-from database import initialize_database, log_alert
+from agent.trap_manager import get_user_folders, TRAP_FILE_NAMES
+from agent.database import initialize_database, log_alert
 
 
 class TrapEventHandler(FileSystemEventHandler):
     """Handle filesystem activity involving RansomTrap trap files."""
 
+    DEBOUNCE_SECONDS = 2
+    last_alerts = {}
+
     def _is_trap_file(self, path):
         return Path(path).name in TRAP_FILE_NAMES
 
+    def _should_alert(self, event_type, path):
+        key = (event_type, str(path))
+        now = time.time()
+
+        last_time = self.last_alerts.get(key)
+
+        if last_time is not None and now - last_time < self.DEBOUNCE_SECONDS:
+            return False
+
+        self.last_alerts[key] = now
+        return True
+
     def _record_alert(self, event_type, path):
+        if not self._should_alert(event_type, path):
+            return
+
         alert_id = log_alert(
             alert_type=f"trap_{event_type}",
             severity="high",
@@ -83,7 +102,7 @@ if __name__ == "__main__":
 
     try:
         while True:
-            pass
+            time.sleep(1)
 
     except KeyboardInterrupt:
         print("\n[+] Stopping monitor...")
