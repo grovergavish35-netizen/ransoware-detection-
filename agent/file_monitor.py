@@ -3,7 +3,7 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 from datetime import datetime
 import sqlite3
-import os
+import time
 
 from trap_manager import get_user_folders, TRAP_FILE_NAMES
 
@@ -13,7 +13,27 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 DB_PATH = BASE_DIR / "dashboard" / "backend" / "ransotrap.db"
 
 
-def save_alert(event_type, file_path):
+def simulate_containment(file_path):
+    """
+    Simulate ransomware containment response.
+    No real process is terminated.
+    """
+
+    print("\n[🛡️ RESPONSE] Initiating threat containment...")
+    print(f"[🛡️ RESPONSE] Isolating suspicious activity near: {file_path}")
+
+    time.sleep(1)
+
+    print("[✓] Threat containment completed (simulation).\n")
+
+    return {
+        "status": "CONTAINED",
+        "process_name": "Unknown Process",
+        "action": "Suspicious activity isolated (simulation)"
+    }
+
+
+def save_alert(event_type, file_path, containment):
     """Save detected trap file activity into the database."""
 
     try:
@@ -30,9 +50,10 @@ def save_alert(event_type, file_path):
             "HIGH",
             "Trap File Monitor",
             0,
-            "Unknown Process",
-            "DETECTED",
-            f"Trap file {event_type}: {file_path}"
+            containment["process_name"],
+            containment["status"],
+            f"Trap file {event_type}: {file_path} | "
+            f"{containment['action']}"
         ))
 
         connection.commit()
@@ -53,11 +74,15 @@ class TrapEventHandler(FileSystemEventHandler):
     def handle_trap_event(self, event_type, path):
         """Handle detected trap file activity."""
 
-        print(f"\n[🚨 ALERT] Trap file {event_type}: {path}")
+        print(f"\n[🚨 THREAT DETECTED] Trap file {event_type}: {path}")
 
-        save_alert(event_type, path)
+        # Automatic containment simulation
+        containment = simulate_containment(path)
 
-        print("[!] Threat recorded successfully.\n")
+        # Save final threat status to database
+        save_alert(event_type, path, containment)
+
+        print("[!] Threat detection and response completed.\n")
 
     def on_modified(self, event):
         if event.is_directory:
@@ -126,7 +151,7 @@ if __name__ == "__main__":
 
     try:
         while True:
-            pass
+            time.sleep(1)
 
     except KeyboardInterrupt:
         print("\n[+] Stopping monitor...")
