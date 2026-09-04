@@ -32,6 +32,22 @@ class TrapEventHandler(FileSystemEventHandler):
         if self._is_trap_file(event.src_path):
             print(f"[ALERT] Trap file deleted: {event.src_path}")
 
+    def on_moved(self, event):
+        if event.is_directory:
+            return
+
+        if self._is_trap_file(event.src_path):
+            print(
+                f"[ALERT] Trap file renamed/moved: "
+                f"{event.src_path} -> {event.dest_path}"
+            )
+
+        elif self._is_trap_file(event.dest_path):
+            print(
+                f"[ALERT] File moved to trap name: "
+                f"{event.src_path} -> {event.dest_path}"
+            )
+
 
 def start_monitor():
     """Start monitoring folders containing trap files."""
