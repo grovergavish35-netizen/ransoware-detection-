@@ -7,49 +7,60 @@ def get_process_info(pid):
     try:
         process = psutil.Process(pid)
 
+        try:
+            executable = process.exe()
+        except (psutil.AccessDenied, psutil.NoSuchProcess):
+            executable = None
+
+        try:
+            name = process.name()
+        except (psutil.AccessDenied, psutil.NoSuchProcess):
+            name = None
+
         return {
             "pid": process.pid,
-            "name": process.name(),
-            "exe": process.exe(),
+            "name": name,
+            "exe": executable,
             "parent_pid": process.ppid(),
         }
 
-    except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+    except (
+        psutil.NoSuchProcess,
+        psutil.AccessDenied,
+        psutil.ZombieProcess,
+    ):
         return None
 
 
-def get_process_tree(pid):
-    """
-    Build the parent chain for a process.
+def get_parent_chain(pid):
+    """Return the target process and all available parents."""
 
-    Returns a list starting from the target process
-    and moving upward through its parents.
-    """
-
-    tree = []
+    chain = []
     current_pid = pid
+    visited = set()
 
-    while current_pid:
+    while current_pid and current_pid not in visited:
+        visited.add(current_pid)
 
         info = get_process_info(current_pid)
 
         if info is None:
             break
 
-        tree.append(info)
+        chain.append(info)
 
         parent_pid = info["parent_pid"]
 
-        if parent_pid == current_pid:
+        if not parent_pid or parent_pid == current_pid:
             break
 
         current_pid = parent_pid
 
-    return tree
+    return chain
 
 
 def get_child_processes(pid):
-    """Return direct child processes of the given PID."""
+    """Return all recursive child processes."""
 
     try:
         process = psutil.Process(pid)
@@ -64,12 +75,42 @@ def get_child_processes(pid):
 
         return children
 
-    except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+    except (
+        psutil.NoSuchProcess,
+        psutil.AccessDenied,
+        psutil.ZombieProcess,
+    ):
         return []
 
 
+def get_full_process_tree(pid):
+    """
+    Return a combined process tree containing:
+    - target process
+    - parent chain
+    - recursive children
+    """
+
+    processes = []
+    seen_pids = set()
+
+    # Add target + parents
+    for process in get_parent_chain(pid):
+        if process["pid"] not in seen_pids:
+            processes.append(process)
+            seen_pids.add(process["pid"])
+
+    # Add recursive children
+    for process in get_child_processes(pid):
+        if process["pid"] not in seen_pids:
+            processes.append(process)
+            seen_pids.add(process["pid"])
+
+    return processes
+
+
 def print_process_tree(pid):
-    """Print parent and child process information."""
+    """Print the complete process tree information."""
 
     info = get_process_info(pid)
 
@@ -83,27 +124,55 @@ def print_process_tree(pid):
     print(f"    EXE: {info['exe']}")
     print(f"    Parent PID: {info['parent_pid']}")
 
+    print()
     print("[PROCESS] Parent chain:")
 
-    for process in get_process_tree(pid):
+    parent_chain = get_parent_chain(pid)
+
+    for process in parent_chain:
         print(
             f"    PID={process['pid']} "
             f"PPID={process['parent_pid']} "
             f"Name={process['name']}"
         )
 
+    print()
     print("[PROCESS] Child processes:")
 
-    for child in get_child_processes(pid):
+    children = get_child_processes(pid)
+
+    if not children:
+        print("    None")
+    else:
+        for child in children:
+            print(
+                f"    PID={child['pid']} "
+                f"PPID={child['parent_pid']} "
+                f"Name={child['name']}"
+            )
+
+    print()
+    print("[PROCESS] Combined process tree:")
+
+    full_tree = get_full_process_tree(pid)
+
+    for process in full_tree:
         print(
-            f"    PID={child['pid']} "
-            f"PPID={child['parent_pid']} "
-            f"Name={child['name']}"
+            f"    PID={process['pid']} "
+            f"PPID={process['parent_pid']} "
+            f"Name={process['name']}"
         )
 
 
 if __name__ == "__main__":
     current_pid = psutil.Process().pid
 
-    print(f"[+] Testing process manager with current PID: {current_pid}")
+    print(
+        f"[+] Testing Process Tree v2 "
+        f"with current PID: {current_pid}"
+    )
+
     print_process_tree(current_pid)
+
+    print()
+    print("[+] Process Tree v2 test completed.")
