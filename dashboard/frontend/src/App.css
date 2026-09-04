@@ -1,30 +1,48 @@
+/* ===============================
+   GLOBAL
+================================ */
+
 * {
+  margin: 0;
+  padding: 0;
   box-sizing: border-box;
 }
 
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background: #f4f7fb;
-  color: #1e293b;
+html {
+  scroll-behavior: smooth;
 }
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  background: #f4f7fb;
+  color: #111827;
+}
+
+
+/* ===============================
+   DASHBOARD LAYOUT
+================================ */
 
 .dashboard {
   display: flex;
   min-height: 100vh;
-  background: #f4f7fb;
 }
 
-/* ================= SIDEBAR ================= */
+
+/* ===============================
+   SIDEBAR
+================================ */
 
 .sidebar {
   width: 250px;
   min-height: 100vh;
-  background: #0f172a;
-  padding: 25px 16px;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.08);
+  background: #111827;
+  color: white;
+  padding: 25px 18px;
+  position: fixed;
+  left: 0;
+  top: 0;
+  border-right: 1px solid #1f2937;
 }
 
 .logo {
@@ -32,17 +50,22 @@ body {
   align-items: center;
   gap: 10px;
   margin-bottom: 45px;
+  padding: 0 8px;
 }
 
 .logo h2 {
-  margin: 0;
-  color: white;
   font-size: 22px;
+  color: #ffffff;
 }
 
 .shield {
   font-size: 28px;
 }
+
+
+/* ===============================
+   NAVIGATION
+================================ */
 
 nav {
   display: flex;
@@ -51,50 +74,66 @@ nav {
 }
 
 nav a {
-  padding: 13px 15px;
-  border-radius: 8px;
-  color: #94a3b8;
   text-decoration: none;
+  color: #9ca3af;
+  padding: 13px 15px;
+  border-radius: 9px;
+  transition: all 0.25s ease;
   cursor: pointer;
-  transition: 0.3s;
-}
-
-nav a:hover {
-  background: #1e293b;
-  color: white;
-}
-
-nav .active {
-  background: #2563eb;
-  color: white;
-}
-
-.system-status {
-  margin-top: auto;
-  padding: 15px;
-  background: #052e16;
-  border-radius: 10px;
-  color: #4ade80;
+  font-weight: 500;
   font-size: 14px;
 }
 
-.status-dot,
-.green-dot {
+nav a:hover {
+  background: #1f2937;
+  color: #ffffff;
+  transform: translateX(3px);
+}
+
+nav a.active {
+  background: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.30);
+}
+
+
+/* ===============================
+   SYSTEM STATUS
+================================ */
+
+.system-status {
+  position: absolute;
+  bottom: 30px;
+  left: 25px;
+  color: #9ca3af;
+  font-size: 14px;
+}
+
+.status-dot {
   display: inline-block;
-  width: 8px;
-  height: 8px;
+  width: 9px;
+  height: 9px;
   background: #22c55e;
   border-radius: 50%;
   margin-right: 7px;
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.7);
 }
 
-/* ================= MAIN CONTENT ================= */
+
+/* ===============================
+   MAIN CONTENT
+================================ */
 
 .main-content {
-  flex: 1;
+  margin-left: 250px;
+  width: calc(100% - 250px);
   padding: 35px;
-  background: #f4f7fb;
 }
+
+
+/* ===============================
+   TOPBAR
+================================ */
 
 .topbar {
   display: flex;
@@ -104,26 +143,38 @@ nav .active {
 }
 
 .topbar h1 {
-  margin: 0 0 8px;
   font-size: 30px;
-  color: #0f172a;
+  margin-bottom: 7px;
+  color: #111827;
 }
 
 .topbar p {
-  margin: 0;
   color: #64748b;
 }
 
 .agent-status {
-  background: #dcfce7;
-  color: #15803d;
-  padding: 10px 18px;
+  background: #ffffff;
+  padding: 11px 18px;
   border-radius: 25px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
+  color: #374151;
 }
 
-/* ================= STATISTICS CARDS ================= */
+.green-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  background: #22c55e;
+  border-radius: 50%;
+  margin-right: 7px;
+}
+
+
+/* ===============================
+   STATISTICS CARDS
+================================ */
 
 .stats-grid {
   display: grid;
@@ -134,96 +185,142 @@ nav .active {
 
 .card {
   background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
   padding: 22px;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
-  transition: transform 0.2s;
+  border-radius: 12px;
+  box-shadow: 0 5px 18px rgba(0, 0, 0, 0.05);
+  transition: all 0.25s ease;
+  border: 1px solid #eef2f7;
 }
 
 .card:hover {
-  transform: translateY(-3px);
+  transform: translateY(-4px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
 }
 
 .card p {
-  margin: 0 0 12px;
   color: #64748b;
   font-size: 14px;
+  margin-bottom: 12px;
 }
 
+/* ALL STAT NUMBERS BLACK */
 .card h2 {
-  margin: 0;
   font-size: 28px;
-  color: #0f172a;
+  color: #111827;
+  font-weight: 700;
 }
 
+/* PROTECTED REMAINS GREEN */
 .safe {
   color: #16a34a !important;
 }
 
-/* ================= CONTENT PANELS ================= */
+
+/* ===============================
+   CONTENT GRID
+================================ */
 
 .content-grid {
   display: grid;
   grid-template-columns: 1.5fr 1fr;
-  gap: 20px;
+  gap: 25px;
+  margin-bottom: 25px;
 }
+
+
+/* ===============================
+   PANELS
+================================ */
 
 .panel {
   background: #ffffff;
-  border: 1px solid #e2e8f0;
   border-radius: 14px;
-  padding: 22px;
-  min-height: 280px;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
-}
-
-.panel > h3 {
-  margin-top: 0;
+  padding: 25px;
+  box-shadow: 0 5px 18px rgba(0, 0, 0, 0.05);
   margin-bottom: 25px;
-  color: #0f172a;
-  font-size: 18px;
+  border: 1px solid #eef2f7;
 }
 
-/* ================= EMPTY STATE ================= */
+.panel h3 {
+  margin-bottom: 20px;
+  color: #1f2937;
+}
+
+
+/* ===============================
+   ALERTS
+================================ */
+
+.alert-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.alert-item:last-child {
+  border-bottom: none;
+}
+
+.alert-item p {
+  font-size: 14px;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+.alert-item small {
+  color: #94a3b8;
+}
+
+.alert-status {
+  background: #dcfce7;
+  color: #15803d;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+
+/* ===============================
+   EMPTY STATE
+================================ */
 
 .empty-state {
   text-align: center;
-  padding-top: 45px;
+  padding: 45px 20px;
 }
 
 .check {
   width: 55px;
   height: 55px;
-  margin: auto;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  border-radius: 50%;
   background: #dcfce7;
   color: #16a34a;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 28px;
-  font-weight: bold;
-}
-
-.empty-state h3 {
-  margin-bottom: 8px;
-  color: #0f172a;
+  margin: auto;
+  margin-bottom: 15px;
 }
 
 .empty-state p {
   color: #64748b;
+  margin-top: 8px;
 }
 
-/* ================= DETECTION ENGINE ================= */
+
+/* ===============================
+   DETECTION ENGINE
+================================ */
 
 .engine-item {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  padding: 17px 0;
-  border-bottom: 1px solid #e2e8f0;
-  color: #334155;
+  padding: 16px 0;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .engine-item:last-child {
@@ -232,62 +329,185 @@ nav .active {
 
 .engine-item strong {
   color: #16a34a;
-  font-size: 12px;
-  background: #dcfce7;
-  padding: 5px 10px;
-  border-radius: 15px;
+  font-size: 13px;
 }
 
-/* ================= SECURITY ALERT ================= */
 
-.alert-item {
+/* ===============================
+   SUSPICIOUS PROCESS
+================================ */
+
+.suspicious-panel {
+  margin-top: 10px;
+}
+
+.suspicious-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #fff7f7;
-  border: 1px solid #fecaca;
-  border-left: 5px solid #ef4444;
-  border-radius: 12px;
-  padding: 18px;
-  margin-bottom: 14px;
-  box-shadow: 0 3px 8px rgba(239, 68, 68, 0.08);
 }
 
-.alert-item strong {
-  display: inline-block;
-  color: #dc2626;
-  background: #fee2e2;
-  padding: 5px 10px;
-  border-radius: 15px;
-  font-size: 12px;
-  letter-spacing: 1px;
-  margin-bottom: 7px;
-}
-
-.alert-item p {
-  margin: 5px 0;
-  color: #1e293b;
-  font-size: 15px;
-  font-weight: 500;
-}
-
-.alert-item small {
-  color: #64748b;
-}
-
-.alert-status {
+.safe-badge {
   background: #dcfce7;
   color: #15803d;
-  padding: 8px 13px;
+  padding: 7px 13px;
   border-radius: 20px;
   font-size: 12px;
   font-weight: bold;
-  margin-left: 15px;
 }
 
-/* ================= RESPONSIVE ================= */
+.danger-badge {
+  background: #fee2e2;
+  color: #dc2626;
+  padding: 7px 13px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: bold;
+}
 
-@media (max-width: 1100px) {
+
+/* ===============================
+   ENTROPY ANALYSIS
+================================ */
+
+.entropy-details {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 30px;
+  align-items: center;
+  margin-top: 15px;
+}
+
+.entropy-score {
+  background: #f8fafc;
+  padding: 25px;
+  border-radius: 12px;
+  text-align: center;
+  border: 1px solid #e2e8f0;
+}
+
+.entropy-score span {
+  color: #64748b;
+  font-size: 14px;
+}
+
+.entropy-score h1 {
+  font-size: 48px;
+  margin: 12px 0;
+  color: #2563eb;
+}
+
+.entropy-score small {
+  color: #64748b;
+}
+
+.entropy-info p {
+  margin-bottom: 18px;
+  color: #475569;
+  word-break: break-word;
+}
+
+
+/* ===============================
+   THREAT TIMELINE
+================================ */
+
+.timeline-container {
+  position: relative;
+  margin-top: 10px;
+  padding-left: 25px;
+}
+
+.timeline-container::before {
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: 5px;
+  bottom: 5px;
+  width: 2px;
+  background: #dbe3ee;
+}
+
+.timeline-item {
+  position: relative;
+  padding-bottom: 25px;
+}
+
+.timeline-item:last-child {
+  padding-bottom: 0;
+}
+
+.timeline-dot {
+  position: absolute;
+  left: -24px;
+  top: 6px;
+  width: 14px;
+  height: 14px;
+  background: #2563eb;
+  border-radius: 50%;
+  border: 3px solid white;
+  box-shadow: 0 0 0 2px #bfdbfe;
+}
+
+.timeline-content {
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 16px 18px;
+  border: 1px solid #e2e8f0;
+  transition: 0.2s ease;
+}
+
+.timeline-content:hover {
+  background: #f1f5f9;
+}
+
+.timeline-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.timeline-time {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.timeline-content p {
+  margin: 10px 0;
+  color: #475569;
+  font-size: 14px;
+}
+
+.timeline-footer {
+  display: flex;
+  gap: 10px;
+}
+
+.timeline-severity {
+  background: #fee2e2;
+  color: #dc2626;
+  padding: 5px 10px;
+  border-radius: 15px;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.timeline-status {
+  background: #dcfce7;
+  color: #15803d;
+  padding: 5px 10px;
+  border-radius: 15px;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+
+/* ===============================
+   RESPONSIVE DESIGN
+================================ */
+
+@media (max-width: 1000px) {
+
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -295,14 +515,29 @@ nav .active {
   .content-grid {
     grid-template-columns: 1fr;
   }
+
 }
 
 @media (max-width: 700px) {
+
   .sidebar {
+    width: 70px;
+    padding: 20px 10px;
+  }
+
+  .logo h2,
+  nav a,
+  .system-status {
     display: none;
   }
 
+  .logo {
+    justify-content: center;
+  }
+
   .main-content {
+    margin-left: 70px;
+    width: calc(100% - 70px);
     padding: 20px;
   }
 
@@ -311,8 +546,18 @@ nav .active {
   }
 
   .topbar {
+    flex-direction: column;
     align-items: flex-start;
     gap: 15px;
-    flex-direction: column;
   }
+
+  .entropy-details {
+    grid-template-columns: 1fr;
+  }
+
+  .timeline-header {
+    flex-direction: column;
+    gap: 5px;
+  }
+
 }
