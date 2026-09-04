@@ -12,7 +12,10 @@ class TrapEventHandler(FileSystemEventHandler):
     """Handle filesystem activity involving RansomTrap trap files."""
 
     DEBOUNCE_SECONDS = 2
-    last_alerts = {}
+
+    def __init__(self):
+        super().__init__()
+        self.last_alerts = {}
 
     def _is_trap_file(self, path):
         return Path(path).name in TRAP_FILE_NAMES
@@ -23,8 +26,9 @@ class TrapEventHandler(FileSystemEventHandler):
 
         last_time = self.last_alerts.get(key)
 
-        if last_time is not None and now - last_time < self.DEBOUNCE_SECONDS:
-            return False
+        if last_time is not None:
+            if now - last_time < self.DEBOUNCE_SECONDS:
+                return False
 
         self.last_alerts[key] = now
         return True
@@ -37,7 +41,10 @@ class TrapEventHandler(FileSystemEventHandler):
             alert_type=f"trap_{event_type}",
             severity="high",
             file_path=str(path),
-            details=f"RansomTrap detected {event_type} activity on a trap file.",
+            details=(
+                f"RansomTrap detected {event_type} activity "
+                f"on a trap file."
+            ),
         )
 
         print(
@@ -50,21 +57,30 @@ class TrapEventHandler(FileSystemEventHandler):
             return
 
         if self._is_trap_file(event.src_path):
-            self._record_alert("modified", event.src_path)
+            self._record_alert(
+                "modified",
+                event.src_path,
+            )
 
     def on_created(self, event):
         if event.is_directory:
             return
 
         if self._is_trap_file(event.src_path):
-            self._record_alert("created", event.src_path)
+            self._record_alert(
+                "created",
+                event.src_path,
+            )
 
     def on_deleted(self, event):
         if event.is_directory:
             return
 
         if self._is_trap_file(event.src_path):
-            self._record_alert("deleted", event.src_path)
+            self._record_alert(
+                "deleted",
+                event.src_path,
+            )
 
 
 def start_monitor():
@@ -84,6 +100,7 @@ def start_monitor():
                 str(folder),
                 recursive=False,
             )
+
             monitored_folders.append(folder)
 
     observer.start()
