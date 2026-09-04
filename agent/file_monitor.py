@@ -4,27 +4,49 @@ from watchdog.events import FileSystemEventHandler
 from datetime import datetime
 import sqlite3
 import time
+import json
 
 from trap_manager import get_user_folders, TRAP_FILE_NAMES
+from entropy_analyzer import analyze_file
 
 
-# Database path
+# Project paths
 BASE_DIR = Path(__file__).resolve().parent.parent
 DB_PATH = BASE_DIR / "dashboard" / "backend" / "ransotrap.db"
+ENTROPY_STATUS_PATH = BASE_DIR / "agent" / "entropy_status.json"
+
+
+def save_entropy_status(file_path, entropy_result):
+    """Save latest entropy analysis result for dashboard."""
+
+    try:
+        status_data = {
+            "file": str(file_path),
+            "entropy": entropy_result.get("entropy"),
+            "threshold": entropy_result.get("threshold"),
+            "status": entropy_result.get("status"),
+            "suspicious": entropy_result.get("suspicious"),
+            "analyzed_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+
+        with open(ENTROPY_STATUS_PATH, "w", encoding="utf-8") as file:
+            json.dump(status_data, file, indent=4)
+
+        print("[+] Latest entropy status saved.")
+
+    except Exception as error:
+        print(f"[ERROR] Failed to save entropy status: {error}")
 
 
 def simulate_containment(file_path):
-    """
-    Simulate ransomware containment response.
-    No real process is terminated.
-    """
+    """Simulate ransomware containment response."""
 
-    print("\n[🛡️ RESPONSE] Initiating threat containment...")
-    print(f"[🛡️ RESPONSE] Isolating suspicious activity near: {file_path}")
+    print("\n[RESPONSE] Initiating threat containment...")
+    print(f"[RESPONSE] Isolating suspicious activity near: {file_path}")
 
     time.sleep(1)
 
-    print("[✓] Threat containment completed (simulation).\n")
+    print("[OK] Threat containment completed (simulation).\n")
 
     return {
         "status": "CONTAINED",
@@ -33,12 +55,33 @@ def simulate_containment(file_path):
     }
 
 
-def save_alert(event_type, file_path, containment):
-    """Save detected trap file activity into the database."""
+def save_alert(event_type, file_path, containment, entropy_result=None):
+    """Save detected trap file activity into database."""
 
     try:
         connection = sqlite3.connect(DB_PATH)
         cursor = connection.cursor()
+
+        severity = "HIGH"
+        entropy_info = "Entropy analysis unavailable"
+
+        if entropy_result:
+            entropy_value = entropy_result.get("entropy")
+            entropy_status = entropy_result.get("status")
+
+            entropy_info = (
+                f"Entropy: {entropy_value} | "
+                f"Status: {entropy_status}"
+            )
+
+            if entropy_result.get("suspicious"):
+                severity = "CRITICAL"
+
+        action_message = (
+            f"Trap file {event_type}: {file_path} | "
+            f"{entropy_info} | "
+            f"{containment['action']}"
+        )
 
         cursor.execute("""
             INSERT INTO alerts
@@ -47,13 +90,12 @@ def save_alert(event_type, file_path, containment):
             VALUES (?, ?, ?, ?, ?, ?, ?)
         """, (
             datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "HIGH",
-            "Trap File Monitor",
+            severity,
+            "Trap File Monitor + Entropy Analysis",
             0,
             containment["process_name"],
             containment["status"],
-            f"Trap file {event_type}: {file_path} | "
-            f"{containment['action']}"
+            action_message
         ))
 
         connection.commit()
@@ -66,21 +108,60 @@ def save_alert(event_type, file_path, containment):
 
 
 class TrapEventHandler(FileSystemEventHandler):
-    """Handle filesystem activity involving RansomTrap files."""
 
     def _is_trap_file(self, path):
         return Path(path).name in TRAP_FILE_NAMES
 
     def handle_trap_event(self, event_type, path):
-        """Handle detected trap file activity."""
 
-        print(f"\n[🚨 THREAT DETECTED] Trap file {event_type}: {path}")
+        print(f"\n[THREAT DETECTED] Trap file {event_type}: {path}")
 
-        # Automatic containment simulation
+        entropy_result = None
+
+        # Entropy analysis only when file exists
+        if event_type in ["MODIFIED", "CREATED"]:
+
+            print("[+] Running entropy analysis...")
+
+            entropy_result = analyze_file(path)
+
+            # Save latest entropy result for dashboard
+            save_entropy_status(path, entropy_result)
+
+            if entropy_result.get("entropy") is not None:
+
+                print(
+                    f"[+] Entropy Score: "
+                    f"{entropy_result['entropy']}"
+                )
+
+                print(
+                    f"[+] Entropy Status: "
+                    f"{entropy_result['status']}"
+                )
+
+                if entropy_result.get("suspicious"):
+                    print(
+                        "[ALERT] HIGH ENTROPY DETECTED - "
+                        "Possible encryption activity!"
+                    )
+                else:
+                    print("[OK] Entropy level appears normal.")
+
+            else:
+                print("[!] Entropy analysis could not read the file.")
+
+        else:
+            print("[INFO] Entropy analysis skipped.")
+
         containment = simulate_containment(path)
 
-        # Save final threat status to database
-        save_alert(event_type, path, containment)
+        save_alert(
+            event_type,
+            path,
+            containment,
+            entropy_result
+        )
 
         print("[!] Threat detection and response completed.\n")
 
@@ -123,7 +204,6 @@ class TrapEventHandler(FileSystemEventHandler):
 
 
 def start_monitor():
-    """Start monitoring folders containing trap files."""
 
     observer = Observer()
     handler = TrapEventHandler()
@@ -138,6 +218,7 @@ def start_monitor():
     observer.start()
 
     print("[+] RansomTrap file monitor started.")
+    print("[+] Entropy Analysis Engine: ACTIVE")
     print("[+] Monitoring:")
 
     for folder in monitored_folders:
@@ -147,6 +228,7 @@ def start_monitor():
 
 
 if __name__ == "__main__":
+
     observer = start_monitor()
 
     try:
