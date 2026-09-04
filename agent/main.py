@@ -7,12 +7,47 @@ from agent.database import initialize_database
 from agent.entropy_monitor import scan_folder
 
 
+ENTROPY_EXTENSIONS = [
+    ".txt",
+    ".doc",
+    ".xls",
+]
+
+
+def start_entropy_monitor():
+    """Run periodic entropy scans in the background."""
+
+    def entropy_scan_loop():
+        while True:
+            try:
+                for folder in get_user_folders():
+                    if folder.exists():
+                        scan_folder(
+                            folder,
+                            extensions=ENTROPY_EXTENSIONS,
+                        )
+
+            except Exception as e:
+                print(f"[ENTROPY] Scan error: {e}")
+
+            time.sleep(30)
+
+    thread = threading.Thread(
+        target=entropy_scan_loop,
+        daemon=True,
+    )
+
+    thread.start()
+
+    return thread
+
+
 def main():
     print("=" * 50)
     print("        RANSOMTRAP SECURITY AGENT")
     print("=" * 50)
 
-    # Initialize local database
+    # Initialize local SQLite database
     initialize_database()
     print("[+] SQLite database initialized.")
 
@@ -24,34 +59,11 @@ def main():
     for path in trap_files:
         print(f"    {path}")
 
-    # Start trap file monitoring
+    # Start trap-file filesystem monitoring
     observer = start_monitor()
 
-    # Background entropy monitoring
-    def entropy_scan_loop():
-        while True:
-            try:
-                for folder in get_user_folders():
-                    if folder.exists():
-                        scan_folder(
-                            folder,
-                            extensions=[
-                                ".txt",
-                                ".doc",
-                                ".xls",
-                            ],
-                        )
-            except Exception as e:
-                print(f"[ENTROPY] Scan error: {e}")
-
-            time.sleep(30)
-
-    entropy_thread = threading.Thread(
-        target=entropy_scan_loop,
-        daemon=True,
-    )
-
-    entropy_thread.start()
+    # Start entropy monitoring
+    start_entropy_monitor()
 
     print("[+] Entropy monitoring ACTIVE.")
     print("[+] RansomTrap protection is ACTIVE.")
