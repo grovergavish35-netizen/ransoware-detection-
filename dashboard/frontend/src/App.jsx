@@ -1,6 +1,15 @@
 import { useEffect, useState } from "react";
 import "./App.css";
 
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+  Legend,
+} from "recharts";
+
 function App() {
   const [traps, setTraps] = useState([]);
   const [alerts, setAlerts] = useState([]);
@@ -9,9 +18,42 @@ function App() {
   const [entropyData, setEntropyData] = useState(null);
   const [riskData, setRiskData] = useState(null);
   const [responseData, setResponseData] = useState(null);
+  const [timelineData, setTimelineData] = useState([]);
   const [lastUpdated, setLastUpdated] = useState("");
   const [simulating, setSimulating] = useState(false);
   const [containing, setContaining] = useState(false);
+
+  // ==========================================
+  // SECURITY ANALYTICS DATA
+  // ==========================================
+
+  const analyticsData = [
+    {
+      name: "LOW",
+      value: alerts.filter(
+        (alert) => alert.severity === "LOW"
+      ).length,
+    },
+    {
+      name: "MEDIUM",
+      value: alerts.filter(
+        (alert) => alert.severity === "MEDIUM"
+      ).length,
+    },
+    {
+      name: "HIGH",
+      value: alerts.filter(
+        (alert) => alert.severity === "HIGH"
+      ).length,
+    },
+    {
+      name: "CRITICAL",
+      value: alerts.filter(
+        (alert) => alert.severity === "CRITICAL"
+      ).length,
+    },
+  ].filter((item) => item.value > 0);
+
 
   // ==========================================
   // FETCH DASHBOARD DATA
@@ -64,6 +106,15 @@ function App() {
         await responseResponse.json();
       setResponseData(responseResult);
 
+      const timelineResponse = await fetch(
+        "http://127.0.0.1:5000/api/threat-timeline"
+      );
+      const timelineResult =
+        await timelineResponse.json();
+      setTimelineData(
+        timelineResult.events || []
+      );
+
       setLastUpdated(
         new Date().toLocaleTimeString()
       );
@@ -104,7 +155,7 @@ function App() {
       const response = await fetch(
         "http://127.0.0.1:5000/api/simulate-attack",
         {
-          method: "POST"
+          method: "POST",
         }
       );
 
@@ -145,7 +196,7 @@ function App() {
       const response = await fetch(
         "http://127.0.0.1:5000/api/contain-threat",
         {
-          method: "POST"
+          method: "POST",
         }
       );
 
@@ -210,6 +261,14 @@ function App() {
 
           <a href="#response">
             Threat Response
+          </a>
+
+          <a href="#analytics">
+            Security Analytics
+          </a>
+
+          <a href="#timeline">
+            Activity Timeline
           </a>
         </nav>
 
@@ -308,9 +367,7 @@ function App() {
 
               <div className="empty-state">
                 <div className="check">✓</div>
-
                 <h3>No Active Threats</h3>
-
                 <p>
                   Your system is currently protected.
                 </p>
@@ -385,11 +442,21 @@ function App() {
               <strong>ACTIVE</strong>
             </div>
 
+            <div className="engine-item">
+              <span>Security Analytics</span>
+              <strong>ACTIVE</strong>
+            </div>
+
+            <div className="engine-item">
+              <span>Activity Timeline</span>
+              <strong>ACTIVE</strong>
+            </div>
+
             <p
               style={{
                 marginTop: "20px",
                 fontSize: "12px",
-                color: "#64748b"
+                color: "#64748b",
               }}
             >
               Last updated:{" "}
@@ -432,7 +499,6 @@ function App() {
           {suspiciousProcesses.length === 0 ? (
 
             <div className="empty-state">
-
               <div className="check">✓</div>
 
               <h3>
@@ -442,7 +508,6 @@ function App() {
               <p>
                 All monitored processes appear safe.
               </p>
-
             </div>
 
           ) : (
@@ -513,7 +578,6 @@ function App() {
           entropyData.status === "WAITING" ? (
 
             <div className="empty-state">
-
               <div className="check">⌛</div>
 
               <h3>
@@ -523,7 +587,6 @@ function App() {
               <p>
                 Entropy engine is monitoring trap files.
               </p>
-
             </div>
 
           ) : (
@@ -614,7 +677,6 @@ function App() {
           {!riskData ? (
 
             <div className="empty-state">
-
               <div className="check">⌛</div>
 
               <h3>
@@ -624,7 +686,6 @@ function App() {
               <p>
                 Risk engine is collecting security signals.
               </p>
-
             </div>
 
           ) : (
@@ -639,7 +700,6 @@ function App() {
 
                 <h1>
                   {riskData.risk_score}
-
                   <small>/100</small>
                 </h1>
 
@@ -730,7 +790,6 @@ function App() {
           {!responseData ? (
 
             <div className="empty-state">
-
               <div className="check">⌛</div>
 
               <h3>
@@ -740,13 +799,11 @@ function App() {
               <p>
                 Response engine is analyzing system status.
               </p>
-
             </div>
 
           ) : (
 
             <div className="response-content">
-
 
               <div className="response-info">
 
@@ -823,6 +880,315 @@ function App() {
 
         </section>
 
+
+        {/* ================= SECURITY ANALYTICS ================= */}
+
+        <section
+          className="panel analytics-panel"
+          id="analytics"
+        >
+
+          <div className="suspicious-header">
+
+            <div>
+              <h3>📊 Security Analytics</h3>
+
+              <p className="analytics-subtitle">
+                Threat distribution based on recorded security events
+              </p>
+            </div>
+
+            <span className="safe-badge">
+              {alerts.length} TOTAL EVENTS
+            </span>
+
+          </div>
+
+
+          <div className="analytics-content">
+
+            <div className="chart-container">
+
+              {analyticsData.length === 0 ? (
+
+                <div className="empty-state">
+
+                  <div className="check">✓</div>
+
+                  <h3>
+                    No Analytics Available
+                  </h3>
+
+                  <p>
+                    Security events will appear here once detected.
+                  </p>
+
+                </div>
+
+              ) : (
+
+                <ResponsiveContainer
+                  width="100%"
+                  height={320}
+                >
+
+                  <PieChart>
+
+                    <Pie
+                      data={analyticsData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={70}
+                      outerRadius={110}
+                      paddingAngle={4}
+                      dataKey="value"
+                    >
+
+                      {analyticsData.map(
+                        (entry, index) => (
+
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={
+                              entry.name === "LOW"
+                                ? "#22c55e"
+                                : entry.name === "MEDIUM"
+                                ? "#eab308"
+                                : entry.name === "HIGH"
+                                ? "#f97316"
+                                : "#ef4444"
+                            }
+                          />
+
+                        )
+                      )}
+
+                    </Pie>
+
+                    <Tooltip />
+
+                    <Legend />
+
+                  </PieChart>
+
+                </ResponsiveContainer>
+
+              )}
+
+            </div>
+
+
+            <div className="analytics-summary">
+
+              <h4>Threat Summary</h4>
+
+
+              <div className="analytics-stat low">
+
+                <div>
+                  <span className="analytics-dot"></span>
+                  LOW
+                </div>
+
+                <strong>
+                  {
+                    alerts.filter(
+                      (alert) => alert.severity === "LOW"
+                    ).length
+                  }
+                </strong>
+
+              </div>
+
+
+              <div className="analytics-stat medium">
+
+                <div>
+                  <span className="analytics-dot"></span>
+                  MEDIUM
+                </div>
+
+                <strong>
+                  {
+                    alerts.filter(
+                      (alert) =>
+                        alert.severity === "MEDIUM"
+                    ).length
+                  }
+                </strong>
+
+              </div>
+
+
+              <div className="analytics-stat high">
+
+                <div>
+                  <span className="analytics-dot"></span>
+                  HIGH
+                </div>
+
+                <strong>
+                  {
+                    alerts.filter(
+                      (alert) => alert.severity === "HIGH"
+                    ).length
+                  }
+                </strong>
+
+              </div>
+
+
+              <div className="analytics-stat critical">
+
+                <div>
+                  <span className="analytics-dot"></span>
+                  CRITICAL
+                </div>
+
+                <strong>
+                  {
+                    alerts.filter(
+                      (alert) =>
+                        alert.severity === "CRITICAL"
+                    ).length
+                  }
+                </strong>
+
+              </div>
+
+
+              <div className="analytics-total">
+
+                <span>
+                  Total Recorded Events
+                </span>
+
+                <h2>
+                  {alerts.length}
+                </h2>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </section>
+
+
+        {/* ================= THREAT ACTIVITY TIMELINE ================= */}
+
+        <section
+          className="panel timeline-panel"
+          id="timeline"
+        >
+
+          <div className="suspicious-header">
+
+            <h3>
+              📈 Threat Activity Timeline
+            </h3>
+
+            <span className="safe-badge">
+              {timelineData.length} EVENTS
+            </span>
+
+          </div>
+
+
+          {timelineData.length === 0 ? (
+
+            <div className="empty-state">
+
+              <div className="check">✓</div>
+
+              <h3>
+                No Security Events
+              </h3>
+
+              <p>
+                System activity will appear here.
+              </p>
+
+            </div>
+
+          ) : (
+
+            <div className="timeline-container">
+
+              {timelineData.map((event) => (
+
+                <div
+                  className="timeline-item"
+                  key={event.id}
+                >
+
+                  <div
+                    className={
+                      event.severity === "CRITICAL"
+                        ? "timeline-dot critical"
+                        : event.severity === "HIGH"
+                        ? "timeline-dot high"
+                        : "timeline-dot normal"
+                    }
+                  ></div>
+
+
+                  <div className="timeline-content">
+
+                    <div className="timeline-top">
+
+                      <h4>
+                        {event.title}
+                      </h4>
+
+                      <span
+                        className={
+                          event.severity === "CRITICAL"
+                            ? "danger-badge"
+                            : event.severity === "HIGH"
+                            ? "high-badge"
+                            : "safe-badge"
+                        }
+                      >
+                        {event.severity}
+                      </span>
+
+                    </div>
+
+
+                    <p>
+                      {event.action}
+                    </p>
+
+
+                    <div className="timeline-meta">
+
+                      <span>
+                        🖥️ {event.process}
+                      </span>
+
+                      <span>
+                        🕒 {event.timestamp}
+                      </span>
+
+                      <span>
+                        ✓ {event.status}
+                      </span>
+
+                    </div>
+
+                  </div>
+
+                </div>
+
+              ))}
+
+            </div>
+
+          )}
+
+        </section>
 
       </main>
 

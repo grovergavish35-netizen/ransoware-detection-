@@ -316,7 +316,6 @@ def risk_score():
 
     try:
 
-        # Get recent alerts
         connection = sqlite3.connect(DB_PATH)
         connection.row_factory = sqlite3.Row
         cursor = connection.cursor()
@@ -331,7 +330,6 @@ def risk_score():
         recent_alerts = cursor.fetchall()
         connection.close()
 
-        # Check trap activity
         trap_triggered = False
 
         for alert in recent_alerts:
@@ -348,9 +346,7 @@ def risk_score():
                 break
 
 
-        # Check entropy
         entropy_file = AGENT_DIR / "entropy_status.json"
-
         high_entropy = False
 
         if entropy_file.exists():
@@ -378,7 +374,6 @@ def risk_score():
                 )
 
 
-        # Check suspicious processes
         suspicious_count = 0
 
         suspicious_keywords = [
@@ -388,9 +383,7 @@ def risk_score():
             "crypt"
         ]
 
-        for process in psutil.process_iter(
-            ["name"]
-        ):
+        for process in psutil.process_iter(["name"]):
 
             try:
 
@@ -412,7 +405,6 @@ def risk_score():
                 continue
 
 
-        # Calculate risk
         result = calculate_risk(
             trap_triggered=trap_triggered,
             high_entropy=high_entropy,
@@ -517,7 +509,6 @@ def threat_response():
         latest_alert = cursor.fetchone()
         connection.close()
 
-        # Default state
         response = {
             "status": "MONITORING",
             "threat_detected": False,
@@ -582,10 +573,7 @@ def threat_response():
 
     except Exception as error:
 
-        print(
-            "[ERROR] Threat Response:",
-            error
-        )
+        print("[ERROR] Threat Response:", error)
 
         return jsonify({
             "status": "ERROR",
@@ -646,13 +634,78 @@ def contain_threat():
 
     except Exception as error:
 
-        print(
-            "[ERROR] Containment:",
-            error
-        )
+        print("[ERROR] Containment:", error)
 
         return jsonify({
             "success": False,
+            "error": str(error)
+        }), 500
+
+
+# ==========================================
+# API: THREAT ACTIVITY TIMELINE
+# ==========================================
+
+@app.route("/api/threat-timeline", methods=["GET"])
+def threat_timeline():
+
+    try:
+
+        connection = sqlite3.connect(DB_PATH)
+        connection.row_factory = sqlite3.Row
+        cursor = connection.cursor()
+
+        # Latest 10 security events
+        cursor.execute("""
+            SELECT
+                id,
+                timestamp,
+                severity,
+                detector,
+                status,
+                action,
+                process_name
+            FROM alerts
+            ORDER BY id DESC
+            LIMIT 10
+        """)
+
+        rows = cursor.fetchall()
+        connection.close()
+
+        timeline = []
+
+        # Reverse so oldest -> newest
+        for row in reversed(rows):
+
+            event = {
+                "id": row["id"],
+                "timestamp": row["timestamp"],
+                "severity": row["severity"],
+                "title": row["detector"],
+                "status": row["status"],
+                "action": row["action"],
+                "process": row["process_name"]
+            }
+
+            timeline.append(event)
+
+
+        return jsonify({
+            "total_events": len(timeline),
+            "events": timeline,
+            "generated_at": datetime.now().strftime(
+                "%Y-%m-%d %H:%M:%S"
+            )
+        })
+
+    except Exception as error:
+
+        print("[ERROR] Threat Timeline:", error)
+
+        return jsonify({
+            "total_events": 0,
+            "events": [],
             "error": str(error)
         }), 500
 
@@ -674,7 +727,6 @@ def system_status():
         )
 
         alert_count = cursor.fetchone()[0]
-
         connection.close()
 
         return jsonify({
@@ -706,6 +758,7 @@ if __name__ == "__main__":
     print("Dashboard API: ACTIVE")
     print("Risk Score Engine: ACTIVE")
     print("Threat Response Center: ACTIVE")
+    print("Threat Activity Timeline: ACTIVE")
     print("Attack Simulation API: ACTIVE")
     print("========================================\n")
 
