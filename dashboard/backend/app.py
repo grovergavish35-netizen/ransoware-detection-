@@ -6,6 +6,9 @@ import sqlite3
 import psutil
 import sys
 import json
+import os
+
+from backup_recovery import backup_file, get_backup_status
 
 
 # ==========================================
@@ -138,7 +141,6 @@ def get_traps():
                         })
 
     except Exception as error:
-
         print("[ERROR] Trap API:", error)
 
     return jsonify(traps)
@@ -191,9 +193,7 @@ def get_processes():
 
     try:
 
-        count = len(
-            list(psutil.process_iter())
-        )
+        count = len(list(psutil.process_iter()))
 
         return jsonify({
             "count": count
@@ -259,7 +259,6 @@ def suspicious_processes():
                 continue
 
     except Exception as error:
-
         print("[ERROR] Process Monitor:", error)
 
     return jsonify({
@@ -291,11 +290,7 @@ def entropy_status():
             return jsonify(data)
 
         except Exception as error:
-
-            print(
-                "[ERROR] Entropy Status:",
-                error
-            )
+            print("[ERROR] Entropy Status:", error)
 
     return jsonify({
         "status": "WAITING",
@@ -345,7 +340,6 @@ def risk_score():
                 trap_triggered = True
                 break
 
-
         entropy_file = AGENT_DIR / "entropy_status.json"
         high_entropy = False
 
@@ -367,12 +361,10 @@ def risk_score():
                 )
 
             except Exception as error:
-
                 print(
                     "[WARNING] Entropy read error:",
                     error
                 )
-
 
         suspicious_count = 0
 
@@ -404,7 +396,6 @@ def risk_score():
             ):
                 continue
 
-
         result = calculate_risk(
             trap_triggered=trap_triggered,
             high_entropy=high_entropy,
@@ -412,7 +403,6 @@ def risk_score():
         )
 
         return jsonify(result)
-
 
     except Exception as error:
 
@@ -536,12 +526,10 @@ def threat_response():
                 response = {
                     "status": "THREAT CONTAINED",
                     "threat_detected": True,
-                    "recommended_action": (
-                        "ISOLATE AND INVESTIGATE"
-                    ),
-                    "response_action": (
-                        "AUTOMATIC CONTAINMENT ACTIVATED"
-                    ),
+                    "recommended_action":
+                        "ISOLATE AND INVESTIGATE",
+                    "response_action":
+                        "AUTOMATIC CONTAINMENT ACTIVATED",
                     "latest_threat": {
                         "severity": severity,
                         "detector": detector,
@@ -555,12 +543,10 @@ def threat_response():
                 response = {
                     "status": "HIGH RISK DETECTED",
                     "threat_detected": True,
-                    "recommended_action": (
-                        "INVESTIGATE IMMEDIATELY"
-                    ),
-                    "response_action": (
-                        "MONITORING SUSPICIOUS ACTIVITY"
-                    ),
+                    "recommended_action":
+                        "INVESTIGATE IMMEDIATELY",
+                    "response_action":
+                        "MONITORING SUSPICIOUS ACTIVITY",
                     "latest_threat": {
                         "severity": severity,
                         "detector": detector,
@@ -623,10 +609,6 @@ def contain_threat():
         connection.commit()
         connection.close()
 
-        print(
-            "[RESPONSE] Manual containment activated."
-        )
-
         return jsonify({
             "success": True,
             "message": "Threat containment action completed"
@@ -635,6 +617,69 @@ def contain_threat():
     except Exception as error:
 
         print("[ERROR] Containment:", error)
+
+        return jsonify({
+            "success": False,
+            "error": str(error)
+        }), 500
+
+
+# ==========================================
+# API: BACKUP STATUS
+# ==========================================
+
+@app.route("/api/backup-status", methods=["GET"])
+def backup_status():
+
+    try:
+        return jsonify(get_backup_status())
+
+    except Exception as error:
+
+        print("[ERROR] Backup Status:", error)
+
+        return jsonify({
+            "total_backups": 0,
+            "backups": [],
+            "error": str(error)
+        }), 500
+
+
+# ==========================================
+# API: CREATE DEMO BACKUP
+# ==========================================
+
+@app.route("/api/create-backup", methods=["POST"])
+def create_backup():
+
+    try:
+
+        demo_file = os.path.join(
+            BASE_DIR,
+            "demo_protected_file.txt"
+        )
+
+        # Create a safe demo file
+        if not os.path.exists(demo_file):
+
+            with open(
+                demo_file,
+                "w",
+                encoding="utf-8"
+            ) as file:
+
+                file.write(
+                    "This is a protected demo file for "
+                    "RansomTrap Backup and Recovery Module."
+                )
+
+        result = backup_file(demo_file)
+
+        return jsonify(result)
+
+    except Exception as error:
+
+        print("[ERROR] Create Backup:", error)
 
         return jsonify({
             "success": False,
@@ -655,7 +700,6 @@ def threat_timeline():
         connection.row_factory = sqlite3.Row
         cursor = connection.cursor()
 
-        # Latest 10 security events
         cursor.execute("""
             SELECT
                 id,
@@ -675,7 +719,6 @@ def threat_timeline():
 
         timeline = []
 
-        # Reverse so oldest -> newest
         for row in reversed(rows):
 
             event = {
@@ -689,7 +732,6 @@ def threat_timeline():
             }
 
             timeline.append(event)
-
 
         return jsonify({
             "total_events": len(timeline),
@@ -759,6 +801,8 @@ if __name__ == "__main__":
     print("Risk Score Engine: ACTIVE")
     print("Threat Response Center: ACTIVE")
     print("Threat Activity Timeline: ACTIVE")
+    print("Security Analytics: ACTIVE")
+    print("Backup & Recovery Module: ACTIVE")
     print("Attack Simulation API: ACTIVE")
     print("========================================\n")
 
