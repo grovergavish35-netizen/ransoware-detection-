@@ -19,9 +19,12 @@ function App() {
   const [riskData, setRiskData] = useState(null);
   const [responseData, setResponseData] = useState(null);
   const [timelineData, setTimelineData] = useState([]);
+  const [backupData, setBackupData] = useState(null);
+
   const [lastUpdated, setLastUpdated] = useState("");
   const [simulating, setSimulating] = useState(false);
   const [containing, setContaining] = useState(false);
+  const [creatingBackup, setCreatingBackup] = useState(false);
 
   // ==========================================
   // SECURITY ANALYTICS DATA
@@ -67,17 +70,20 @@ function App() {
       const trapsData = await trapsResponse.json();
       setTraps(trapsData);
 
+
       const alertsResponse = await fetch(
         "http://127.0.0.1:5000/api/alerts"
       );
       const alertsData = await alertsResponse.json();
       setAlerts(alertsData);
 
+
       const processesResponse = await fetch(
         "http://127.0.0.1:5000/api/processes"
       );
       const processesData = await processesResponse.json();
       setProcessCount(processesData.count);
+
 
       const suspiciousResponse = await fetch(
         "http://127.0.0.1:5000/api/suspicious-processes"
@@ -87,11 +93,13 @@ function App() {
         suspiciousData.processes || []
       );
 
+
       const entropyResponse = await fetch(
         "http://127.0.0.1:5000/api/entropy-status"
       );
       const entropyResult = await entropyResponse.json();
       setEntropyData(entropyResult);
+
 
       const riskResponse = await fetch(
         "http://127.0.0.1:5000/api/risk-score"
@@ -99,12 +107,14 @@ function App() {
       const riskResult = await riskResponse.json();
       setRiskData(riskResult);
 
+
       const responseResponse = await fetch(
         "http://127.0.0.1:5000/api/threat-response"
       );
       const responseResult =
         await responseResponse.json();
       setResponseData(responseResult);
+
 
       const timelineResponse = await fetch(
         "http://127.0.0.1:5000/api/threat-timeline"
@@ -114,6 +124,15 @@ function App() {
       setTimelineData(
         timelineResult.events || []
       );
+
+
+      const backupResponse = await fetch(
+        "http://127.0.0.1:5000/api/backup-status"
+      );
+      const backupResult =
+        await backupResponse.json();
+      setBackupData(backupResult);
+
 
       setLastUpdated(
         new Date().toLocaleTimeString()
@@ -226,6 +245,49 @@ function App() {
   };
 
 
+  // ==========================================
+  // CREATE BACKUP
+  // ==========================================
+
+  const handleCreateBackup = async () => {
+    try {
+      setCreatingBackup(true);
+
+      const response = await fetch(
+        "http://127.0.0.1:5000/api/create-backup",
+        {
+          method: "POST",
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert(
+          "Protected backup created successfully!"
+        );
+
+        fetchDashboardData();
+      } else {
+        alert("Backup creation failed!");
+      }
+
+    } catch (error) {
+      console.error(
+        "Backup Error:",
+        error
+      );
+
+      alert(
+        "Could not connect to backup service."
+      );
+
+    } finally {
+      setCreatingBackup(false);
+    }
+  };
+
+
   return (
     <div className="dashboard">
 
@@ -269,6 +331,10 @@ function App() {
 
           <a href="#timeline">
             Activity Timeline
+          </a>
+
+          <a href="#backup">
+            Backup & Recovery
           </a>
         </nav>
 
@@ -452,6 +518,11 @@ function App() {
               <strong>ACTIVE</strong>
             </div>
 
+            <div className="engine-item">
+              <span>Backup & Recovery</span>
+              <strong>ACTIVE</strong>
+            </div>
+
             <p
               style={{
                 marginTop: "20px",
@@ -494,7 +565,6 @@ function App() {
             </span>
 
           </div>
-
 
           {suspiciousProcesses.length === 0 ? (
 
@@ -761,7 +831,7 @@ function App() {
         </section>
 
 
-        {/* ================= THREAT RESPONSE CENTER ================= */}
+        {/* ================= THREAT RESPONSE ================= */}
 
         <section
           className="panel response-panel"
@@ -838,10 +908,7 @@ function App() {
                     </span>
 
                     <strong>
-                      {
-                        responseData.latest_threat
-                          .detector
-                      }
+                      {responseData.latest_threat.detector}
                     </strong>
 
                   </div>
@@ -966,7 +1033,6 @@ function App() {
                     </Pie>
 
                     <Tooltip />
-
                     <Legend />
 
                   </PieChart>
@@ -982,79 +1048,32 @@ function App() {
 
               <h4>Threat Summary</h4>
 
+              {["LOW", "MEDIUM", "HIGH", "CRITICAL"].map(
+                (severity) => (
 
-              <div className="analytics-stat low">
+                  <div
+                    className={`analytics-stat ${severity.toLowerCase()}`}
+                    key={severity}
+                  >
 
-                <div>
-                  <span className="analytics-dot"></span>
-                  LOW
-                </div>
+                    <div>
+                      <span className="analytics-dot"></span>
+                      {severity}
+                    </div>
 
-                <strong>
-                  {
-                    alerts.filter(
-                      (alert) => alert.severity === "LOW"
-                    ).length
-                  }
-                </strong>
+                    <strong>
+                      {
+                        alerts.filter(
+                          (alert) =>
+                            alert.severity === severity
+                        ).length
+                      }
+                    </strong>
 
-              </div>
+                  </div>
 
-
-              <div className="analytics-stat medium">
-
-                <div>
-                  <span className="analytics-dot"></span>
-                  MEDIUM
-                </div>
-
-                <strong>
-                  {
-                    alerts.filter(
-                      (alert) =>
-                        alert.severity === "MEDIUM"
-                    ).length
-                  }
-                </strong>
-
-              </div>
-
-
-              <div className="analytics-stat high">
-
-                <div>
-                  <span className="analytics-dot"></span>
-                  HIGH
-                </div>
-
-                <strong>
-                  {
-                    alerts.filter(
-                      (alert) => alert.severity === "HIGH"
-                    ).length
-                  }
-                </strong>
-
-              </div>
-
-
-              <div className="analytics-stat critical">
-
-                <div>
-                  <span className="analytics-dot"></span>
-                  CRITICAL
-                </div>
-
-                <strong>
-                  {
-                    alerts.filter(
-                      (alert) =>
-                        alert.severity === "CRITICAL"
-                    ).length
-                  }
-                </strong>
-
-              </div>
+                )
+              )}
 
 
               <div className="analytics-total">
@@ -1072,6 +1091,164 @@ function App() {
             </div>
 
           </div>
+
+        </section>
+
+
+        {/* ================= BACKUP & RECOVERY ================= */}
+
+        <section
+          className="panel backup-panel"
+          id="backup"
+        >
+
+          <div className="suspicious-header">
+
+            <div>
+              <h3>
+                💾 Backup & Recovery Center
+              </h3>
+
+              <p className="analytics-subtitle">
+                Protected file backups for ransomware recovery
+              </p>
+            </div>
+
+            <span className="safe-badge">
+              {backupData?.total_backups || 0} BACKUPS
+            </span>
+
+          </div>
+
+
+          {!backupData ? (
+
+            <div className="empty-state">
+
+              <div className="check">
+                ⌛
+              </div>
+
+              <h3>
+                Loading Backup Information
+              </h3>
+
+              <p>
+                Connecting to secure backup service.
+              </p>
+
+            </div>
+
+          ) : (
+
+            <div className="backup-content">
+
+              <div className="backup-summary">
+
+                <div className="backup-icon">
+                  💾
+                </div>
+
+                <div>
+
+                  <span>
+                    Total Protected Backups
+                  </span>
+
+                  <h1>
+                    {backupData.total_backups}
+                  </h1>
+
+                  <p>
+                    Backup storage is active and ready
+                    for recovery.
+                  </p>
+
+                </div>
+
+              </div>
+
+
+              <div className="backup-action">
+
+                <h4>
+                  Create Protected Backup
+                </h4>
+
+                <p>
+                  Create a secure backup copy of the
+                  protected demo file.
+                </p>
+
+                <button
+                  className="backup-btn"
+                  onClick={handleCreateBackup}
+                  disabled={creatingBackup}
+                >
+
+                  {creatingBackup
+                    ? "CREATING BACKUP..."
+                    : "💾 CREATE BACKUP"}
+
+                </button>
+
+              </div>
+
+            </div>
+
+          )}
+
+
+          {backupData?.backups?.length > 0 && (
+
+            <div className="backup-list">
+
+              <h4>
+                Recent Backups
+              </h4>
+
+              {backupData.backups
+                .slice(-3)
+                .reverse()
+                .map((backup, index) => (
+
+                  <div
+                    className="backup-item"
+                    key={index}
+                  >
+
+                    <div>
+
+                      <strong>
+                        📄 {backup.name}
+                      </strong>
+
+                      <small>
+                        Created: {backup.created_at}
+                      </small>
+
+                    </div>
+
+
+                    <div className="backup-meta">
+
+                      <span>
+                        {backup.size} bytes
+                      </span>
+
+                      <span className="safe-badge">
+                        SECURE
+                      </span>
+
+                    </div>
+
+                  </div>
+
+                ))}
+
+            </div>
+
+          )}
 
         </section>
 
@@ -1100,7 +1277,9 @@ function App() {
 
             <div className="empty-state">
 
-              <div className="check">✓</div>
+              <div className="check">
+                ✓
+              </div>
 
               <h3>
                 No Security Events
