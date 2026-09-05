@@ -7,8 +7,9 @@ function App() {
   const [processCount, setProcessCount] = useState(0);
   const [suspiciousProcesses, setSuspiciousProcesses] = useState([]);
   const [entropyData, setEntropyData] = useState(null);
-  const [timeline, setTimeline] = useState([]);
+  const [riskData, setRiskData] = useState(null);
   const [lastUpdated, setLastUpdated] = useState("");
+  const [simulating, setSimulating] = useState(false);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -20,7 +21,7 @@ function App() {
         const trapsData = await trapsResponse.json();
         setTraps(trapsData);
 
-        // Security Alerts
+        // Alerts
         const alertsResponse = await fetch(
           "http://127.0.0.1:5000/api/alerts"
         );
@@ -32,49 +33,98 @@ function App() {
           "http://127.0.0.1:5000/api/processes"
         );
         const processesData = await processesResponse.json();
-        setProcessCount(processesData.count || 0);
+        setProcessCount(processesData.count);
 
         // Suspicious Processes
         const suspiciousResponse = await fetch(
           "http://127.0.0.1:5000/api/suspicious-processes"
         );
         const suspiciousData = await suspiciousResponse.json();
-        setSuspiciousProcesses(suspiciousData.processes || []);
+        setSuspiciousProcesses(
+          suspiciousData.processes || []
+        );
 
-        // Latest Entropy Analysis
+        // Entropy Analysis
         const entropyResponse = await fetch(
           "http://127.0.0.1:5000/api/entropy-status"
         );
         const entropyResult = await entropyResponse.json();
         setEntropyData(entropyResult);
 
-        // Threat Timeline
-        const timelineResponse = await fetch(
-          "http://127.0.0.1:5000/api/timeline"
+        // Risk Score Engine
+        const riskResponse = await fetch(
+          "http://127.0.0.1:5000/api/risk-score"
         );
-        const timelineData = await timelineResponse.json();
-        setTimeline(Array.isArray(timelineData) ? timelineData : []);
+        const riskResult = await riskResponse.json();
+        setRiskData(riskResult);
 
-        setLastUpdated(new Date().toLocaleTimeString());
+        setLastUpdated(
+          new Date().toLocaleTimeString()
+        );
 
       } catch (error) {
-        console.error("Error fetching dashboard data:", error);
+        console.error(
+          "Error fetching dashboard data:",
+          error
+        );
       }
     };
 
     fetchDashboardData();
 
-    // Auto refresh every 3 seconds
-    const interval = setInterval(fetchDashboardData, 3000);
+    const interval = setInterval(
+      fetchDashboardData,
+      3000
+    );
 
     return () => clearInterval(interval);
   }, []);
+
+
+  // ==========================================
+  // SIMULATE ATTACK
+  // ==========================================
+
+  const handleSimulateAttack = async () => {
+    try {
+      setSimulating(true);
+
+      const response = await fetch(
+        "http://127.0.0.1:5000/api/simulate-attack",
+        {
+          method: "POST"
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert(
+          "🚨 Simulated ransomware activity detected and contained!"
+        );
+      } else {
+        alert("Simulation failed!");
+      }
+
+    } catch (error) {
+      console.error(
+        "Simulation Error:",
+        error
+      );
+
+      alert("Could not connect to backend.");
+
+    } finally {
+      setSimulating(false);
+    }
+  };
 
 
   return (
     <div className="dashboard">
 
       {/* ================= SIDEBAR ================= */}
+
       <aside className="sidebar">
 
         <div className="logo">
@@ -91,6 +141,10 @@ function App() {
             Alerts
           </a>
 
+          <a href="#traps">
+            Trap Files
+          </a>
+
           <a href="#process">
             Process Monitor
           </a>
@@ -99,8 +153,8 @@ function App() {
             Entropy Analysis
           </a>
 
-          <a href="#timeline">
-            Threat Timeline
+          <a href="#risk">
+            Risk Assessment
           </a>
         </nav>
 
@@ -113,115 +167,211 @@ function App() {
 
 
       {/* ================= MAIN CONTENT ================= */}
+
       <main className="main-content">
 
-        {/* HEADER */}
-        <header className="topbar" id="dashboard">
+        {/* TOPBAR */}
+
+        <header
+          className="topbar"
+          id="dashboard"
+        >
 
           <div>
             <h1>Security Dashboard</h1>
+
             <p>
               Real-time ransomware detection and response
             </p>
           </div>
 
-          <div className="agent-status">
-            <span className="green-dot"></span>
-            Agent Active
+
+          <div className="topbar-actions">
+
+            <button
+              className="simulate-btn"
+              onClick={handleSimulateAttack}
+              disabled={simulating}
+            >
+              {simulating
+                ? "SIMULATING..."
+                : "🚨 SIMULATE ATTACK"}
+            </button>
+
+
+            <div className="agent-status">
+              <span className="green-dot"></span>
+              Agent Active
+            </div>
+
           </div>
 
         </header>
 
 
         {/* ================= STATS ================= */}
+
         <section className="stats-grid">
 
           <div className="card">
             <p>System Status</p>
-            <h2 className="safe">PROTECTED</h2>
+            <h2 className="safe">
+              PROTECTED
+            </h2>
           </div>
+
 
           <div className="card">
             <p>Active Trap Files</p>
-            <h2>{traps.length}</h2>
+            <h2>
+              {traps.length}
+            </h2>
           </div>
+
 
           <div className="card">
             <p>Threats Detected</p>
-            <h2>{alerts.length}</h2>
+            <h2>
+              {alerts.length}
+            </h2>
           </div>
+
 
           <div className="card">
             <p>Processes Monitored</p>
-            <h2>{processCount}</h2>
+            <h2>
+              {processCount}
+            </h2>
           </div>
 
         </section>
 
 
         {/* ================= ALERTS + ENGINE ================= */}
+
         <section className="content-grid">
 
-          {/* Recent Alerts */}
-          <div className="panel" id="alerts">
+          <div
+            className="panel"
+            id="alerts"
+          >
 
-            <h3>Recent Security Alerts</h3>
+            <h3>
+              Recent Security Alerts
+            </h3>
+
 
             {alerts.length === 0 ? (
 
               <div className="empty-state">
-                <div className="check">✓</div>
-                <h3>No Active Threats</h3>
-                <p>Your system is currently protected.</p>
+
+                <div className="check">
+                  ✓
+                </div>
+
+                <h3>
+                  No Active Threats
+                </h3>
+
+                <p>
+                  Your system is currently protected.
+                </p>
+
               </div>
 
             ) : (
 
-              alerts.slice(0, 5).map((alert) => (
+              alerts.slice(0, 5).map(
+                (alert) => (
 
-                <div
-                  className="alert-item"
-                  key={alert.id}
-                >
+                  <div
+                    className="alert-item"
+                    key={alert.id}
+                  >
 
-                  <div>
-                    <strong>{alert.severity}</strong>
-                    <p>{alert.detector}</p>
-                    <small>{alert.timestamp}</small>
+                    <div>
+
+                      <strong>
+                        {alert.severity}
+                      </strong>
+
+                      <p>
+                        {alert.detector}
+                      </p>
+
+                      <small>
+                        {alert.timestamp}
+                      </small>
+
+                    </div>
+
+
+                    <span className="alert-status">
+                      {alert.status}
+                    </span>
+
                   </div>
 
-                  <span className="alert-status">
-                    {alert.status}
-                  </span>
-
-                </div>
-
-              ))
+                )
+              )
 
             )}
 
           </div>
 
 
-          {/* Detection Engine */}
+          {/* DETECTION ENGINE */}
+
           <div className="panel">
 
-            <h3>Detection Engine</h3>
+            <h3>
+              Detection Engine
+            </h3>
+
 
             <div className="engine-item">
-              <span>Trap File Monitor</span>
-              <strong>ACTIVE</strong>
+              <span>
+                Trap File Monitor
+              </span>
+
+              <strong>
+                ACTIVE
+              </strong>
             </div>
 
-            <div className="engine-item">
-              <span>Entropy Analysis</span>
-              <strong>ACTIVE</strong>
-            </div>
 
             <div className="engine-item">
-              <span>Process Monitor</span>
-              <strong>ACTIVE</strong>
+              <span>
+                Entropy Analysis
+              </span>
+
+              <strong>
+                ACTIVE
+              </strong>
             </div>
+
+
+            <div className="engine-item">
+              <span>
+                Process Monitor
+              </span>
+
+              <strong>
+                ACTIVE
+              </strong>
+            </div>
+
+
+            <div className="engine-item">
+              <span>
+                Risk Score Engine
+              </span>
+
+              <strong>
+                ACTIVE
+              </strong>
+            </div>
+
 
             <p
               style={{
@@ -230,7 +380,8 @@ function App() {
                 color: "#64748b"
               }}
             >
-              Last updated: {lastUpdated || "Connecting..."}
+              Last updated:{" "}
+              {lastUpdated || "Connecting..."}
             </p>
 
           </div>
@@ -238,7 +389,8 @@ function App() {
         </section>
 
 
-        {/* ================= PROCESS MONITOR ================= */}
+        {/* ================= SUSPICIOUS PROCESS ================= */}
+
         <section
           className="panel suspicious-panel"
           id="process"
@@ -246,7 +398,10 @@ function App() {
 
           <div className="suspicious-header">
 
-            <h3>🔍 Suspicious Process Detection</h3>
+            <h3>
+              🔍 Suspicious Process Detection
+            </h3>
+
 
             <span
               className={
@@ -269,9 +424,13 @@ function App() {
 
             <div className="empty-state">
 
-              <div className="check">✓</div>
+              <div className="check">
+                ✓
+              </div>
 
-              <h3>No Suspicious Processes</h3>
+              <h3>
+                No Suspicious Processes
+              </h3>
 
               <p>
                 All monitored processes appear safe.
@@ -281,33 +440,47 @@ function App() {
 
           ) : (
 
-            suspiciousProcesses.map((process) => (
+            suspiciousProcesses.map(
+              (process) => (
 
-              <div
-                className="alert-item"
-                key={process.pid}
-              >
+                <div
+                  className="alert-item"
+                  key={process.pid}
+                >
 
-                <div>
-                  <strong>{process.name}</strong>
-                  <p>PID: {process.pid}</p>
-                  <small>{process.reason}</small>
+                  <div>
+
+                    <strong>
+                      {process.name}
+                    </strong>
+
+                    <p>
+                      PID: {process.pid}
+                    </p>
+
+                    <small>
+                      {process.reason}
+                    </small>
+
+                  </div>
+
+
+                  <span className="alert-status">
+                    {process.severity}
+                  </span>
+
                 </div>
 
-                <span className="alert-status">
-                  {process.severity}
-                </span>
-
-              </div>
-
-            ))
+              )
+            )
 
           )}
 
         </section>
 
 
-        {/* ================= ENTROPY ANALYSIS ================= */}
+        {/* ================= ENTROPY ENGINE ================= */}
+
         <section
           className="panel suspicious-panel"
           id="entropy"
@@ -315,7 +488,10 @@ function App() {
 
           <div className="suspicious-header">
 
-            <h3>📊 Entropy Analysis Engine</h3>
+            <h3>
+              📊 Entropy Analysis Engine
+            </h3>
+
 
             <span
               className={
@@ -337,9 +513,13 @@ function App() {
 
             <div className="empty-state">
 
-              <div className="check">⌛</div>
+              <div className="check">
+                ⌛
+              </div>
 
-              <h3>Waiting for File Analysis</h3>
+              <h3>
+                Waiting for File Analysis
+              </h3>
 
               <p>
                 Entropy engine is ready and monitoring trap files.
@@ -353,16 +533,21 @@ function App() {
 
               <div className="entropy-score">
 
-                <span>Latest Entropy Score</span>
+                <span>
+                  Latest Entropy Score
+                </span>
 
                 <h1>
+
                   {entropyData.entropy !== null
                     ? entropyData.entropy
                     : "--"}
+
                 </h1>
 
                 <small>
-                  Threshold: {entropyData.threshold || 7.5}
+                  Threshold:{" "}
+                  {entropyData.threshold || 7.5}
                 </small>
 
               </div>
@@ -371,21 +556,32 @@ function App() {
               <div className="entropy-info">
 
                 <p>
-                  <strong>Status:</strong>
-                  {" "}
+                  <strong>Status:</strong>{" "}
                   {entropyData.status}
                 </p>
 
-                <p>
-                  <strong>Last Analyzed:</strong>
-                  <br />
-                  {entropyData.analyzed_at || "--"}
-                </p>
 
                 <p>
-                  <strong>File:</strong>
+                  <strong>
+                    Last Analyzed:
+                  </strong>
+
                   <br />
+
+                  {entropyData.analyzed_at || "--"}
+
+                </p>
+
+
+                <p>
+                  <strong>
+                    File:
+                  </strong>
+
+                  <br />
+
                   {entropyData.file || "--"}
+
                 </p>
 
               </div>
@@ -397,94 +593,142 @@ function App() {
         </section>
 
 
-        {/* ================= THREAT TIMELINE ================= */}
+        {/* ================= RISK SCORE ENGINE ================= */}
+
         <section
-          className="panel suspicious-panel"
-          id="timeline"
+          className="panel risk-panel"
+          id="risk"
         >
 
           <div className="suspicious-header">
 
-            <h3>⚡ Recent Threat Timeline</h3>
+            <h3>
+              🎯 Threat Risk Assessment
+            </h3>
 
-            <span className="danger-badge">
-              LIVE EVENTS
+
+            <span
+              className={
+                riskData?.severity === "CRITICAL" ||
+                riskData?.severity === "HIGH"
+                  ? "danger-badge"
+                  : "safe-badge"
+              }
+            >
+
+              {riskData?.severity || "ANALYZING"}
+
             </span>
 
           </div>
 
 
-          {timeline.length === 0 ? (
+          {!riskData ? (
 
             <div className="empty-state">
 
-              <div className="check">✓</div>
+              <div className="check">
+                ⌛
+              </div>
 
-              <h3>No Security Events</h3>
+              <h3>
+                Analyzing Threat Signals
+              </h3>
 
               <p>
-                System activity will appear here.
+                Risk engine is collecting security signals.
               </p>
 
             </div>
 
           ) : (
 
-            <div className="timeline-container">
-
-              {timeline.map((event) => (
-
-                <div
-                  className="timeline-item"
-                  key={event.id}
-                >
-
-                  <div className="timeline-dot"></div>
+            <div className="risk-content">
 
 
-                  <div className="timeline-content">
+              {/* RISK SCORE */}
 
-                    <div className="timeline-header">
+              <div className="risk-score-box">
 
-                      <strong>
-                        {event.detector}
-                      </strong>
+                <span>
+                  Current Risk Score
+                </span>
 
-                      <span className="timeline-time">
-                        {event.timestamp}
-                      </span>
+                <h1>
 
-                    </div>
+                  {riskData.risk_score}
+
+                  <small>
+                    /100
+                  </small>
+
+                </h1>
+
+                <p>
+                  {riskData.recommended_action}
+                </p>
+
+              </div>
 
 
-                    <p>
-                      {event.action}
-                    </p>
+              {/* DETECTION SIGNALS */}
+
+              <div className="risk-signals">
+
+                <h4>
+                  Detection Signals
+                </h4>
 
 
-                    <div className="timeline-footer">
+                {riskData.signals &&
+                riskData.signals.length === 0 ? (
 
-                      <span className="timeline-severity">
-                        {event.severity}
-                      </span>
+                  <p className="no-signals">
+                    No threat signals detected.
+                  </p>
 
-                      <span className="timeline-status">
-                        {event.status}
-                      </span>
+                ) : (
 
-                    </div>
+                  riskData.signals?.map(
+                    (signal, index) => (
 
-                  </div>
+                      <div
+                        className="signal-item"
+                        key={index}
+                      >
 
-                </div>
+                        <div>
 
-              ))}
+                          <strong>
+                            {signal.signal}
+                          </strong>
+
+                          <p>
+                            {signal.status}
+                          </p>
+
+                        </div>
+
+
+                        <span>
+                          +{signal.score}
+                        </span>
+
+                      </div>
+
+                    )
+                  )
+
+                )}
+
+              </div>
 
             </div>
 
           )}
 
         </section>
+
 
       </main>
 
